@@ -2,90 +2,59 @@ const express = require("express");
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json()); // Middleware to parse JSON
 
-let seats = Array.from({ length: 10 }, (_, i) => ({
-  id: i + 1,
-  status: "available",
-  lockedBy: null,
-  lockTimeout: null
-}));
+// Sample in-memory card collection
+let cards = [
+    { id: 1, suit: "Hearts", value: "Ace" },
+    { id: 2, suit: "Spades", value: "King" }
+];
 
-app.get("/", (req, res) => {
-  res.send("🎟️ Welcome to the Ticket Booking API! Use /seats to view seats.");
+// GET all cards
+app.get("/cards", (req, res) => {
+    res.json(cards);
 });
 
-app.get("/seats", (req, res) => {
-  res.json(seats);
+// POST add a new card
+app.post("/cards", (req, res) => {
+    const newCard = {
+        id: cards.length + 1,
+        suit: req.body.suit,
+        value: req.body.value
+    };
+    cards.push(newCard);
+    res.status(201).json(newCard);
 });
 
-app.post("/lock/:id", (req, res) => {
-  const seatId = parseInt(req.params.id);
-  const user = req.body.user || "guest";
-  const seat = seats.find(s => s.id === seatId);
+// PUT update a card by id
+app.put("/cards/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+    const card = cards.find(c => c.id === id);
 
-  if (!seat) {
-    return res.status(404).json({ message: "Seat not found" });
-  }
-  if (seat.status === "booked") {
-    return res.status(400).json({ message: "Seat already booked" });
-  }
-  if (seat.status === "locked") {
-    return res.status(400).json({ message: "Seat already locked" });
-  }
+    if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+    }
 
-  seat.status = "locked";
-  seat.lockedBy = user;
+    card.suit = req.body.suit || card.suit;
+    card.value = req.body.value || card.value;
 
-  seat.lockTimeout = setTimeout(() => {
-    seat.status = "available";
-    seat.lockedBy = null;
-    seat.lockTimeout = null;
-  }, 10000);
-
-  res.json({ message: `Seat ${seatId} locked for ${user}. Confirm within 10 seconds.` });
+    res.json(card);
 });
 
-app.post("/confirm/:id", (req, res) => {
-  const seatId = parseInt(req.params.id);
-  const user = req.body.user || "guest";
-  const seat = seats.find(s => s.id === seatId);
+// DELETE a card by id
+app.delete("/cards/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+    const index = cards.findIndex(c => c.id === id);
 
-  if (!seat) {
-    return res.status(404).json({ message: "Seat not found" });
-  }
-  if (seat.status !== "locked" || seat.lockedBy !== user) {
-    return res.status(400).json({ message: "Seat not locked by you" });
-  }
+    if (index === -1) {
+        return res.status(404).json({ message: "Card not found" });
+    }
 
-  clearTimeout(seat.lockTimeout);
-  seat.status = "booked";
-  seat.lockedBy = user;
-  seat.lockTimeout = null;
-
-  res.json({ message: `Seat ${seatId} successfully booked by ${user}` });
+    const deletedCard = cards.splice(index, 1);
+    res.json(deletedCard);
 });
 
-app.post("/release/:id", (req, res) => {
-  const seatId = parseInt(req.params.id);
-  const user = req.body.user || "guest";
-  const seat = seats.find(s => s.id === seatId);
-
-  if (!seat) {
-    return res.status(404).json({ message: "Seat not found" });
-  }
-  if (seat.status !== "locked" || seat.lockedBy !== user) {
-    return res.status(400).json({ message: "Seat not locked by you" });
-  }
-
-  clearTimeout(seat.lockTimeout);
-  seat.status = "available";
-  seat.lockedBy = null;
-  seat.lockTimeout = null;
-
-  res.json({ message: `Seat ${seatId} released by ${user}` });
-});
-
+// Start server
 app.listen(PORT, () => {
-  console.log(`🎟️ Ticket Booking Server running at http://localhost:${PORT}`);
+    console.log(`🎴 Server running at http://localhost:${PORT}`);
 });
