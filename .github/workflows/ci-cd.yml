@@ -1,0 +1,31 @@
+name: My Project CI Pipeline
+
+on:
+  push:
+    paths:
+      - 'docker-projects/exp9.1/**'
+  pull_request:
+    paths:
+      - 'docker-projects/exp9.1/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install --prefix docker-projects/exp9.1
+
+      - name: Build React App
+        run: npm run build --prefix docker-projects/exp9.1
+
+      - name: Run Tests (optional)
+        run: npm test --prefix docker-projects/exp9.1 --if-present
